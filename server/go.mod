@@ -1,4 +1,4 @@
-module source-code-validator/backend
+module source-code-validator/server
 
 go 1.24.5
 
