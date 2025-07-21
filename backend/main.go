@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/dotenv-org/godotenvvault"
 	"github.com/gin-gonic/gin"
+	"github.com/ledongthuc/pdf"
 	"github.com/openai/openai-go"
 )
 
@@ -29,11 +31,11 @@ func main() {
 	router.Run("localhost:8080")
 }
 
-func isTxt(fileHeader *multipart.FileHeader) (bool, error) {
+func isValidFile(fileHeader *multipart.FileHeader) (string, bool, error) {
 	// Open file
 	file, err := fileHeader.Open()
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 	defer file.Close()
 
@@ -41,7 +43,7 @@ func isTxt(fileHeader *multipart.FileHeader) (bool, error) {
 	buffer := make([]byte, 512)
 	_, err = file.Read(buffer)
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 
 	// Detect MIME type
@@ -50,51 +52,62 @@ func isTxt(fileHeader *multipart.FileHeader) (bool, error) {
 	// Check MIME type and/or extension
 	isText := strings.HasPrefix(contentType, "text/plain") ||
 		strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".txt")
-
-	return isText, nil
+	isPDF := strings.HasPrefix(contentType, "application/pdf") ||
+		strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".pdf")
+	if isText || isPDF {
+		return contentType, true, nil
+	}
+	return contentType, false, fmt.Errorf("file is not a valid text or PDF file")
 }
+
 
 func getValidateSource(c *gin.Context) {
 	url := c.PostForm("url")
 	fmt.Println(url)
 
 	requirements, err := c.FormFile("requirements")
-
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "failed to validate"})
 		return
 	}
-	isPdf, err := isTxt(requirements)
-	if err != nil || !isPdf {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Uploaded file is not a valid PDF"})
+
+	fileType, isValid, err := isValidFile(requirements)
+	if err != nil || !isValid {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Uploaded file is not a valid text or PDF file"})
 		return
 	}
-	file, err := requirements.Open()
-	if err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Uploaded file is not a valid PDF"})
+
+	var requirementText string
+	switch fileType {
+	case "text/plain":
+		// Handle text file
+		file, err := requirements.Open()
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Uploaded file is not a valid text file"})
+			return
+		}
+		defer file.Close()
+		content, err := io.ReadAll(file)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "failed to output text file content"})
+			return
+		}
+		requirementText = string(content)
+	
+	case "application/pdf":
+		var err error
+		requirementText, err = extractTextFromPDF(requirements)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "failed to extract text from PDF"})
+			return
+		}
+	
+	default:
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Unsupported file type"})
 		return
 	}
-	defer file.Close()
-	// content, err := io.ReadAll(file)
-	// if err != nil {
-	// 	c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "failed to output PDF text"})
-	// 	return
-	// }
+	fmt.Println("Requirements text:", requirementText)
 
-	// c.IndentedJSON(http.StatusOK, string(content))
-
-	// 	client := openai.NewClient(
-	// )
-	// chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
-	// 	Messages: []openai.ChatCompletionMessageParamUnion{
-	// 		openai.UserMessage("Say this is a test"),
-	// 	},
-	// 	Model: openai.ChatModelGPT4o,
-	// })
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-	// println(chatCompletion.Choices[0].Message.Content)
 
 	user, repo, branch, err := parseGitHubURLRegex(url)
 	if err != nil {
@@ -107,13 +120,16 @@ func getValidateSource(c *gin.Context) {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "error listing files"})
 		return
 	}
+
 	fileBang, err := getFileContent(*fileContents)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "error getting file contents"})
 		return
 	}
 	// c.IndentedJSON(http.StatusOK, fileBang)
-	consultation, err := consultChatGPT(fileBang, requirements.Filename)
+
+
+	consultation, err := consultChatGPT(fileBang, requirementText)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "error consulting ChatGPT"})
 		return
@@ -253,7 +269,46 @@ Use the following format in your response:
 		Model: openai.ChatModelGPT4o,
 	})
 	if err != nil {
-		return "whatever you want", nil
+		return "Error getting ChatGPT response", nil
 	}
 	return chatCompletion.Choices[0].Message.Content, nil
+}
+
+func extractTextFromPDF(requirementsFile *multipart.FileHeader) (string, error) {
+	// Open the PDF file
+	file, err := requirementsFile.Open()
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	// Read file into a buffer since pdf.NewReader needs a seeker
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+
+	// Create a ReadSeeker from the byte slice
+	readSeeker := bytes.NewReader(data)
+
+	// Create a PDF reader
+	pdfReader, err := pdf.NewReader(readSeeker, int64(len(data)))
+	if err != nil {
+		return "", err
+	}
+
+	// Extract text from all pages
+	var textBuilder strings.Builder
+	numPages := pdfReader.NumPage()
+	for i := 1; i <= numPages; i++ {
+		page := pdfReader.Page(i)
+		pageText, err := page.GetPlainText(nil)
+		if err != nil {
+			return "", err
+		}
+		textBuilder.WriteString(pageText)
+	}
+	rawText := textBuilder.String()
+	cleanText := strings.Join(strings.Fields(rawText), " ")
+	return cleanText, nil
+
 }
