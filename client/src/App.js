@@ -12,7 +12,14 @@ function App() {
 
     const formData = new FormData();
     formData.append("url", url);
-    if (file) formData.append("requirements", file);
+    console.log(file)
+    if (!file) return
+
+    formData.append("requirements", file);
+
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
 
     try {
       const res = await axios.post("http://localhost:8080/validate", formData);
@@ -35,20 +42,30 @@ function App() {
 
         <form className="space-y-4">
           <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
             type="text"
             placeholder="Enter GitHub Repo URL"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          <input type="file" className="w-full text-gray-600" />
+          <input
+              onChange={(e) => setFile(e.target.files[0])}
+              // onChange={(e) => console.log(e.target.files)}
+
+              type="file" className="w-full text-gray-600" />
 
           <button
+            onClick={handleSubmit}
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition"
           >
             Validate
           </button>
         </form>
+        <div className="mt-4 p-4 bg-gray-50 border border-gray-300 rounded text-gray-800 min-h-[3rem]">
+          {result || "Awaiting validation result..."}
+        </div>
       </div>
     </div>
   );

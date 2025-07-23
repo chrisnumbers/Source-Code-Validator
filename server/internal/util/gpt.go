@@ -19,14 +19,16 @@ You are a software design analyst. Use the CLEAR framework (Context, Lens, Expec
 --- CODE CONTENT ---
 %s
 
-Use the following format in your response:
+Format the following technical analysis into a structured, professional document. Use clear section headers, bullet points where appropriate, and improve readability while preserving all original meaning and detail. Group related findings and recommendations together under logical headings such as "Security Gaps", "Feature Limitations", "Recommendations", etc. The final result should resemble a security audit report or product evaluation summary that’s suitable for stakeholders or developers.
+
+
 
 **Context**: What is the context of this system and the intent behind the code?
 **Lens**: What criteria or perspective are you using to evaluate the code against the requirements?
 **Expectations**: What does the system design require in terms of architecture, logic, or design?
 **Analysis**: How does the code satisfy (or fail to satisfy) each requirement? Provide reasoning and examples.
 **Recommendations**: What can be improved in the code to better align with the design requirements?
-`, requirements, content[1])
+`, requirements, content)
 
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{

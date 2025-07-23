@@ -5,9 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"source-code-validator/server/internal/service"
+	"source-code-validator/server/internal/util"
 )
 
-func GetValidateSource(c *gin.Context) {
+func PostValidateSource(c *gin.Context, handler *util.Handler) {
 	url := c.PostForm("url")
 	fmt.Println(url)
 
@@ -17,7 +18,7 @@ func GetValidateSource(c *gin.Context) {
 		return
 	}
 
-	consultation, err := service.ValidateSourceCode(url, requirements)
+	consultation, err := service.ValidateSourceCode(url, requirements, handler)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("failed to validate: %v", err)})
 		return

@@ -1,13 +1,15 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"source-code-validator/server/internal/model"
 	"source-code-validator/server/internal/util"
 )
 
-func ValidateSourceCode(url string, requirements *multipart.FileHeader) (*string, error) {
+func ValidateSourceCode(url string, requirements *multipart.FileHeader, handler *util.Handler) (*string, error) {
 	fileType, isValid, err := util.IsValidFile(requirements)
 	if err != nil || !isValid {
 		return nil, fmt.Errorf("invalid file type: %w", err)
@@ -66,5 +68,19 @@ func ValidateSourceCode(url string, requirements *multipart.FileHeader) (*string
 	if err != nil {
 		return nil, fmt.Errorf("error consulting ChatGPT: %w", err)
 	}
+
+	collection := handler.DB.Database("source_code_validator").Collection("user_data")
+
+	user_data := model.UserData{
+		Url:              url,
+		RequirementsData: requirementText,
+		Consultation:     consultation,
+	}
+
+	_, err = collection.InsertOne(context.Background(), user_data)
+	if err != nil {
+		return nil, fmt.Errorf("error inserting user data into database: %w", err)
+	}
+
 	return &consultation, nil
 }

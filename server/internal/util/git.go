@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -48,7 +50,7 @@ func ParseGitHubURLRegex(rawURL string) (user, repo, branch string, err error) {
 }
 
 func GetFileContent(urls []string) ([]string, error) {
-	results := []string{}
+	var results []string
 
 	for _, url := range urls {
 		response, err := http.Get(url)
@@ -83,7 +85,11 @@ func ListFiles(ownerRepo, branch, path string, fileContents *[]string) (*[]strin
 		switch item.Type {
 		case "file":
 			rawURL := fmt.Sprintf(rawBaseURL, ownerRepo, branch, item.Path)
-			*fileContents = append(*fileContents, rawURL)
+			// Check if the file is allowed based on its extension
+			if isAllowedFile(rawURL) {
+				*fileContents = append(*fileContents, rawURL)
+			}
+
 		case "dir":
 			if _, err := ListFiles(ownerRepo, branch, item.Path, fileContents); err != nil {
 				return fileContents, err
@@ -120,4 +126,38 @@ func fetchContents(ownerRepo, path string) ([]GitHubContent, error) {
 	var contents []GitHubContent
 	err = json.NewDecoder(resp.Body).Decode(&contents)
 	return contents, err
+}
+
+var allowedExtensions = []string{
+	// Code
+	".go", ".py", ".js", ".ts", ".java", ".c", ".cpp", ".cs", ".rb", ".rs", ".php",
+
+	// Web
+	".html", ".htm", ".css", ".scss", ".sass", ".json", ".xml",
+
+	// Markup & Config
+	".md", ".txt", ".sh", ".yml", ".yaml", ".ini", ".cfg", ".toml", ".env", ".dockerfile",
+
+	// Build/Project
+	".gradle", ".makefile", ".mk", ".bat", ".ps1",
+
+	// Templates
+	".ejs", ".hbs", ".pug", ".jinja", ".njk",
+}
+
+var allowedFileNames = []string{"dockerfile", "makefile", "readme.md", "license", "changelog.md"}
+
+func isAllowedFile(path string) bool {
+	lower := strings.ToLower(filepath.Base(path))
+	for _, name := range allowedFileNames {
+		if lower == name {
+			return true
+		}
+	}
+	for _, ext := range allowedExtensions {
+		if strings.HasSuffix(lower, ext) {
+			return true
+		}
+	}
+	return false
 }
