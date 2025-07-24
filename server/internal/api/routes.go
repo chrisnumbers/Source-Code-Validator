@@ -14,10 +14,5 @@ func SetupRouter(handler *util.Handler) *gin.Engine {
 		PostValidateSource(c, handler)
 	})
 
-	err := router.Run("localhost:8080")
-	if err != nil {
-		return nil
-	}
-
 	return router
 }

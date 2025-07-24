@@ -1,6 +1,8 @@
 // client/src/App.js or App.tsx
 import React, { useState } from "react";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
+
 
 function App() {
   const [url, setUrl] = useState("");
@@ -20,9 +22,12 @@ function App() {
     for (const [key, value] of formData.entries()) {
       console.log(`${key}:`, value);
     }
+    console.log("test")
+    const serverUri = process.env.REACT_APP_SERVER_URI
+    console.log(serverUri)
 
     try {
-      const res = await axios.post("http://localhost:8080/validate", formData);
+      const res = await axios.post(`${serverUri}/validate`, formData);
       setResult(res.data.message || "Success");
     } catch (error) {
       console.error(error);
@@ -32,7 +37,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-      <div className="max-w-2xl w-full bg-white shadow-xl rounded-2xl p-8">
+      <div className="max-w-4xl w-full bg-white shadow-xl rounded-2xl p-8">
         <h1 className="text-3xl font-bold text-blue-600 mb-4">
           Source Code Validator
         </h1>
@@ -64,7 +69,11 @@ function App() {
           </button>
         </form>
         <div className="mt-4 p-4 bg-gray-50 border border-gray-300 rounded text-gray-800 min-h-[3rem]">
-          {result || "Awaiting validation result..."}
+          <div className="prose max-w-none">
+          <ReactMarkdown>
+          {result ? result : "### Awaiting validation result...\nPlease submit a GitHub URL or file to get started."}
+          </ReactMarkdown>
+          </div>
         </div>
       </div>
     </div>

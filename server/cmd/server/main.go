@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 	"source-code-validator/server/internal/api"
 	"source-code-validator/server/internal/util"
 	"time"
@@ -16,11 +17,9 @@ func main() {
 	// Load environment variables
 	err := godotenvvault.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
-		return
+		log.Println("Error loading .env file")
 	}
-
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI"))
 	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -44,7 +43,7 @@ func main() {
 
 	router := api.SetupRouter(util.NewHandler(client))
 
-	err = router.Run(":8080")
+	err = router.Run("0.0.0.0:8080")
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 		return
