@@ -69,17 +69,23 @@ func ValidateSourceCode(url string, requirements *multipart.FileHeader, handler 
 		return nil, fmt.Errorf("error consulting ChatGPT: %w", err)
 	}
 
-	collection := handler.DB.Database("source_code_validator").Collection("user_data")
+	collection := handler.MongoDB.Database("source_code_validator").Collection("user_data")
 
-	user_data := model.UserData{
+	userData := model.UserData{
 		Url:              url,
 		RequirementsData: requirementText,
 		Consultation:     consultation,
 	}
 
-	_, err = collection.InsertOne(context.Background(), user_data)
+	_, err = collection.InsertOne(context.Background(), userData)
 	if err != nil {
 		return nil, fmt.Errorf("error inserting user data into database: %w", err)
+	}
+
+	// Store the consultation in Redis
+	err = handler.RedisDB.Set(context.Background(), url, consultation, 0).Err()
+	if err != nil {
+		return nil, fmt.Errorf("error storing consultation in Redis: %w", err)
 	}
 
 	return &consultation, nil

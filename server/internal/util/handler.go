@@ -1,11 +1,15 @@
 package util
 
-import "go.mongodb.org/mongo-driver/mongo"
+import (
+	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 type Handler struct {
-	DB *mongo.Client
+	MongoDB *mongo.Client
+	RedisDB *redis.Client
 }
 
-func NewHandler(client *mongo.Client) *Handler {
-	return &Handler{DB: client}
+func NewHandler(mongoClient *mongo.Client, redisClient *redis.Client) *Handler {
+	return &Handler{MongoDB: mongoClient, RedisDB: redisClient}
 }
