@@ -9,22 +9,18 @@ function App() {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState("");
 
+  // For handling submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const formData = new FormData();
     formData.append("url", url);
-    console.log(file)
     if (!file) return
 
     formData.append("requirements", file);
 
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
-    console.log("test")
     const serverUri = process.env.REACT_APP_SERVER_URI
-    console.log(serverUri)
+
 
     try {
       const res = await axios.post(`${serverUri}/validate`, formData);

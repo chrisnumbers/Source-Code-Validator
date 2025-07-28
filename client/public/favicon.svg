@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="32" height="32" rx="6" fill="url(#bg)"/>
+  
+  <!-- Code brackets -->
+  <path d="M8 10 L5 13 L5 19 L8 22" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 10 L27 13 L27 19 L24 22" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Checkmark in center -->
+  <path d="M12 16 L15 19 L21 13" stroke="#10b981" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Small code dots for texture -->
+  <circle cx="11" cy="11" r="0.8" fill="#ffffff" opacity="0.6"/>
+  <circle cx="21" cy="11" r="0.8" fill="#ffffff" opacity="0.6"/>
+</svg>

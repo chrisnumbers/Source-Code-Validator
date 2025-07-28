@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: redis
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: redis
+  template:
+    metadata:
+      labels:
+        io.kompose.service: redis
+    spec:
+      containers:
+        - image: redis:latest
+          name: redis
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+      restartPolicy: Always

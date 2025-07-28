@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: client
+  name: client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: client
+  template:
+    metadata:
+      labels:
+        io.kompose.service: client
+    spec:
+      containers:
+        - envFrom:
+            - configMapRef:
+                name: validator-config
+          image: 682529580521.dkr.ecr.us-east-1.amazonaws.com/source-code-validator-repository:client-v5
+          imagePullPolicy: Always
+          name: client
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+      restartPolicy: Always

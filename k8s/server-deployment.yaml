@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: server
+  name: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: server
+  template:
+    metadata:
+      labels:
+        io.kompose.service: server
+    spec:
+      containers:
+        - envFrom:
+            - configMapRef:
+                name: validator-config
+          image: 682529580521.dkr.ecr.us-east-1.amazonaws.com/source-code-validator-repository:server-v5
+          name: server
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      restartPolicy: Always
